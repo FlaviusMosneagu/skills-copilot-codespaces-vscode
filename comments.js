@@ -1,98 +1,40 @@
-// Create a web server
+// Create web server
 // Run: node comments.js
-// Run: http://localhost:3000/
-// Run: http://localhost:3000/comments
-// Run: http://localhost:3000/comments/1
+// Test: http://localhost:3000
 
-// Import express
-const express = require('express');
-// Create an express app
-const app = express();
-// Set port
-const port = 3000;
+// Load the express module
+var express = require('express');
 
-// Import body-parser
-const bodyParser = require('body-parser');
-// Support parsing of application/json type post data
+// Create an instance of express
+var app = express();
+
+// Use the 'static' middleware to serve static files
+app.use(express.static(__dirname + '/public'));
+
+// Use the 'body-parser' middleware to parse the body
+var bodyParser = require('body-parser');
 app.use(bodyParser.json());
-// Support parsing of application/x-www-form-urlencoded post data
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: false }));
 
-// Import file system
-const fs = require('fs');
+// Create an array of comments
+var comments = [
+    { name: 'John', message: 'Hello' },
+    { name: 'Mary', message: 'Hi' },
+    { name: 'Sue', message: 'How are you?' }
+];
 
-// Import path
-const path = require('path');
-
-// Import router
-const router = express.Router();
-
-// Import comments data
-let comments = require('./comments.json');
-
-// Import uuid
-const { v4: uuidv4 } = require('uuid');
-
-// Set view engine
-app.set('view engine', 'ejs');
-// Set views path
-app.set('views', path.join(__dirname, 'views'));
-
-// Set static path
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Get home page
-app.get('/', (req, res) => {
-  res.render('index', {
-    title: 'Home',
-  });
+// Add a route to return the array as JSON
+app.get('/comments', function(req, res) {
+    res.json(comments);
 });
 
-// Get comments page
-app.get('/comments', (req, res) => {
-  res.render('comments', {
-    title: 'Comments',
-    comments: comments,
-  });
+// Add a route to add a comment to the array
+app.post('/comments', function(req, res) {
+    comments.push(req.body);
+    res.json(comments);
 });
 
-// Get add comment page
-app.get('/comments/add', (req, res) => {
-  res.render('add-comment', {
-    title: 'Add Comment',
-  });
-});
-
-// Get edit comment page
-app.get('/comments/edit/:id', (req, res) => {
-  const id = req.params.id;
-  const comment = comments.find((comment) => comment.id === id);
-  res.render('edit-comment', {
-    title: 'Edit Comment',
-    comment: comment,
-  });
-});
-
-// Get comment details page
-app.get('/comments/:id', (req, res) => {
-  const id = req.params.id;
-  const comment = comments.find((comment) => comment.id === id);
-  res.render('comment-details', {
-    title: 'Comment Details',
-    comment: comment,
-  });
-});
-
-// Create comment
-app.post('/comments', (req, res) => {
-  const id = uuidv4();
-    const comment = {
-        id: id,
-        name: req.body.name,
-        email: req.body.email,
-        comment: req.body.comment,
-        };
-    comments.push(comment);
-    fs.writeFileSync('./comments.json', JSON.stringify(comments));
-    res.redirect('/comments');
-});
+// Start the server
+var port = 3000;
+app.listen(port);
+console.log('Listening on port ' + port);
