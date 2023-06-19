@@ -1,89 +1,98 @@
 // Create a web server
-// Create a route to handle incoming requests
-// Create a route to handle incoming POST requests
-// Create a route to handle incoming DELETE requests
-// Create a route to handle incoming PUT requests
-// Create a route to handle incoming GET request
+// Run: node comments.js
+// Run: http://localhost:3000/
+// Run: http://localhost:3000/comments
+// Run: http://localhost:3000/comments/1
 
-// Dependencies
-var express = require('express');
-var router = express.Router();
-var path = require('path');
-var fs = require('fs');
-var bodyParser = require('body-parser');
-var comments = require('../data/comments.json');
-var _ = require('lodash');
-var uuid = require('uuid');
+// Import express
+const express = require('express');
+// Create an express app
+const app = express();
+// Set port
+const port = 3000;
 
-// Configure body-parser
-router.use(bodyParser.json());
-router.use(bodyParser.urlencoded({extended: false}));
+// Import body-parser
+const bodyParser = require('body-parser');
+// Support parsing of application/json type post data
+app.use(bodyParser.json());
+// Support parsing of application/x-www-form-urlencoded post data
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Create a route to handle incoming requests
-router.get('/', function(req, res) {
-  res.json(comments);
-});
+// Import file system
+const fs = require('fs');
 
-// Create a route to handle incoming POST requests
-router.post('/', function(req, res) {
-  var comment = {
-    id: uuid.v4(),
-    body: req.body.body
-  };
+// Import path
+const path = require('path');
 
-  comments.push(comment);
+// Import router
+const router = express.Router();
 
-  fs.writeFile('./data/comments.json', JSON.stringify(comments), function(err) {
-    if (err) {
-      console.log(err);
-    }
+// Import comments data
+let comments = require('./comments.json');
 
-    res.json(comment);
+// Import uuid
+const { v4: uuidv4 } = require('uuid');
+
+// Set view engine
+app.set('view engine', 'ejs');
+// Set views path
+app.set('views', path.join(__dirname, 'views'));
+
+// Set static path
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Get home page
+app.get('/', (req, res) => {
+  res.render('index', {
+    title: 'Home',
   });
 });
 
-// Create a route to handle incoming DELETE requests
-router.delete('/:id', function(req, res) {
-  var comment = _.find(comments, {id: req.params.id});
-
-  _.remove(comments, {id: req.params.id});
-
-  fs.writeFile('./data/comments.json', JSON.stringify(comments), function(err) {
-    if (err) {
-      console.log(err);
-    }
-
-    res.json(comment);
+// Get comments page
+app.get('/comments', (req, res) => {
+  res.render('comments', {
+    title: 'Comments',
+    comments: comments,
   });
 });
 
-// Create a route to handle incoming PUT requests
-router.put('/:id', function(req, res) {
-  var update = req.body;
-  if (update.id) {
-    delete update.id;
-  }
-
-  var comment = _.find(comments, {id: req.params.id});
-  if (!comment) {
-    res.send();
-  }
-
-  var updatedComment = _.assign(comment, update);
-
-  fs.writeFile('./data/comments.json', JSON.stringify(comments), function(err) {
-    if (err) {
-      console.log(err);
-    }
-
-    res.json(updatedComment);
+// Get add comment page
+app.get('/comments/add', (req, res) => {
+  res.render('add-comment', {
+    title: 'Add Comment',
   });
 });
 
-// Create a route to handle incoming GET request
-router.get('/:id', function(req, res) {
-  var comment = _.find(comments, {id: req.params.id});
-  res.json(comment || {});
+// Get edit comment page
+app.get('/comments/edit/:id', (req, res) => {
+  const id = req.params.id;
+  const comment = comments.find((comment) => comment.id === id);
+  res.render('edit-comment', {
+    title: 'Edit Comment',
+    comment: comment,
+  });
 });
 
-module.exports = router;
+// Get comment details page
+app.get('/comments/:id', (req, res) => {
+  const id = req.params.id;
+  const comment = comments.find((comment) => comment.id === id);
+  res.render('comment-details', {
+    title: 'Comment Details',
+    comment: comment,
+  });
+});
+
+// Create comment
+app.post('/comments', (req, res) => {
+  const id = uuidv4();
+    const comment = {
+        id: id,
+        name: req.body.name,
+        email: req.body.email,
+        comment: req.body.comment,
+        };
+    comments.push(comment);
+    fs.writeFileSync('./comments.json', JSON.stringify(comments));
+    res.redirect('/comments');
+});
